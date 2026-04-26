@@ -2,7 +2,9 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   DndContext,
   DragOverlay,
+  MouseSensor,
   PointerSensor,
+  TouchSensor,
   useDraggable,
   useDroppable,
   useSensor,
@@ -30,6 +32,9 @@ import {
   DAY_START_HOUR,
   defaultTripStartDate,
   formatJstTime,
+  normalizeIsoDateString,
+  safeNumTripDays,
+  tripStartDateFromDoc,
   HOTEL_CHECK_OUT_MIN,
   jstDateTimeToUtc,
   snapMinutes,
@@ -216,6 +221,7 @@ function PaletteChip({
     <div
       ref={setNodeRef}
       className={`palette-chip${isDragging ? " palette-chip--ghost" : ""}`}
+      title="Drag onto a day column below"
       {...listeners}
       {...attributes}
       style={{ opacity: isDragging ? 0.45 : 1 }}
@@ -251,6 +257,7 @@ function CityChipDraggable({
         {...listeners}
         {...attributes}
         disabled={disabled}
+        title="Drag onto a day column, or click to select for new activities"
         style={{ opacity: isDragging ? 0.45 : 1 }}
         onClick={(e) => {
           e.stopPropagation();
@@ -372,6 +379,10 @@ export function CalendarPage() {
   const dayBodyRefs = useRef(new Map<string, HTMLDivElement>());
 
   const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 6 },
+    }),
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
@@ -413,8 +424,10 @@ export function CalendarPage() {
         return;
       }
       const d = snap.data() as ItineraryDoc;
-      setTripStart(d.tripStartDate || defaultTripStartDate());
-      if (typeof d.numDays === "number") setNumDays(d.numDays);
+      setTripStart(tripStartDateFromDoc(d.tripStartDate));
+      if (typeof d.numDays === "number" && Number.isFinite(d.numDays)) {
+        setNumDays(safeNumTripDays(d.numDays));
+      }
       const serverBlocks = Array.isArray(d.blocks) ? d.blocks : [];
       const pending = pendingDraftRef.current;
       const prev = blocksRef.current;
@@ -567,12 +580,13 @@ export function CalendarPage() {
   }
 
   function updateTripStart(next: string) {
-    setTripStart(next);
-    if (canEdit) void writeItinerary(blocks, next, numDays);
+    const ts = normalizeIsoDateString(next) ?? defaultTripStartDate();
+    setTripStart(ts);
+    if (canEdit) void writeItinerary(blocks, ts, numDays);
   }
 
   function updateNumDays(n: number) {
-    const v = Math.max(3, Math.min(45, n));
+    const v = safeNumTripDays(n);
     setNumDays(v);
     if (canEdit) void writeItinerary(blocks, tripStart, v);
   }

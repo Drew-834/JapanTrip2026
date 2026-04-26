@@ -1,3 +1,4 @@
+import { FirebaseError } from "firebase/app";
 import { useEffect, useMemo, useState } from "react";
 import {
   addDoc,
@@ -68,7 +69,22 @@ export function FeedPage() {
       setText("");
       setFile(null);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "Could not post.");
+      let msg = "Could not post.";
+      if (e instanceof FirebaseError) {
+        if (e.code === "storage/unauthorized") {
+          msg =
+            "Photo upload was blocked. In Firebase Console go to Authentication → Settings → Authorized domains and add your GitHub Pages host (e.g. drew-834.github.io). See README for details.";
+        } else if (e.code === "storage/canceled") {
+          msg = "Upload was canceled.";
+        } else if (e.code.startsWith("storage/")) {
+          msg = `Storage: ${e.message}`;
+        } else {
+          msg = e.message;
+        }
+      } else if (e instanceof Error) {
+        msg = e.message;
+      }
+      setErr(msg);
     } finally {
       setBusy(false);
     }

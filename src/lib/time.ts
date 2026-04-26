@@ -55,18 +55,60 @@ export function formatJstTime(d: Date): string {
   return `${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
 }
 
+const ISO_YMD = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Validate `YYYY-MM-DD` and that y/m/d form a real calendar day in UTC. */
+export function normalizeIsoDateString(value: unknown): string | null {
+  if (typeof value !== "string" || !ISO_YMD.test(value)) return null;
+  const [y, m, d] = value.split("-").map(Number);
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return null;
+  const t = Date.UTC(y, m - 1, d);
+  if (Number.isNaN(t)) return null;
+  const check = new Date(t);
+  if (check.getUTCFullYear() !== y || check.getUTCMonth() !== m - 1 || check.getUTCDate() !== d) {
+    return null;
+  }
+  return value;
+}
+
+/** Normalize Firestore/string/Timestamp-shaped values to a safe trip anchor date. */
+export function tripStartDateFromDoc(value: unknown): string {
+  if (value != null && typeof value === "object" && "toDate" in value) {
+    const fn = (value as { toDate?: () => Date }).toDate;
+    if (typeof fn === "function") {
+      const d = fn();
+      if (d instanceof Date && !Number.isNaN(d.getTime())) {
+        const s = formatJstDay(d);
+        return normalizeIsoDateString(s) ?? defaultTripStartDate();
+      }
+    }
+  }
+  if (typeof value === "string") {
+    return normalizeIsoDateString(value) ?? defaultTripStartDate();
+  }
+  return defaultTripStartDate();
+}
+
 /** Pure calendar dates starting at tripStartDate (YYYY-MM-DD), length numDays. */
 export function tripDayStrings(tripStartDate: string, numDays: number): string[] {
-  const [y0, m0, d0] = tripStartDate.split("-").map(Number);
+  const start =
+    normalizeIsoDateString(tripStartDate) ?? defaultTripStartDate();
+  const n = Number.isFinite(numDays) ? Math.max(1, Math.min(60, Math.floor(numDays))) : 21;
+  const [y0, m0, d0] = start.split("-").map(Number);
   const out: string[] = [];
   let cur = new Date(Date.UTC(y0, m0 - 1, d0));
-  for (let i = 0; i < numDays; i++) {
+  for (let i = 0; i < n; i++) {
     out.push(
       `${cur.getUTCFullYear()}-${String(cur.getUTCMonth() + 1).padStart(2, "0")}-${String(cur.getUTCDate()).padStart(2, "0")}`,
     );
     cur = new Date(Date.UTC(cur.getUTCFullYear(), cur.getUTCMonth(), cur.getUTCDate() + 1));
   }
   return out;
+}
+
+export function safeNumTripDays(numDays: number): number {
+  if (!Number.isFinite(numDays)) return 21;
+  return Math.max(3, Math.min(45, Math.floor(numDays)));
 }
 
 export function minutesSinceDayStartJst(d: Date, dayStr: string): number {

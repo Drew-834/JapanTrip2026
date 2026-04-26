@@ -36,6 +36,9 @@ The build copies `index.html` to `dist/404.html` so client-side routes work on G
    - [`firebase/storage.rules`](firebase/storage.rules)
    (Use Firebase CLI `firebase deploy --only firestore:rules,storage` or paste into the console.)
 3. Create a web app and copy config into `.env`.
+4. **Authorized domains (required for the live GitHub Pages URL):** Firebase Console → **Authentication** → **Settings** → **Authorized domains** → **Add domain**. Use the **hostname only** (no `https://`, no path), e.g. `drew-834.github.io`. That covers `https://drew-834.github.io/JapanTrip2026/` and any path on that host.  
+   If this is missing, **photo uploads** can fail and the browser may show a misleading **CORS / preflight** error on `firebasestorage.googleapis.com` even though the real issue is auth/session for that origin.
+5. Deploy **Storage rules** (see above). If uploads still fail after step 4, confirm **Anonymous** sign-in is enabled and check the browser **Network** tab status code on the failing Storage request (403 → rules or auth).
 
 Firestore rules assume **authenticated** users (anonymous is enough). Anyone who can load your site and complete anonymous sign-in can read shared data; the trip password is **not** a cryptographic lock on Firebase—keep the repo and URL among friends.
 
