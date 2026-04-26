@@ -486,7 +486,7 @@ export function CalendarPage() {
 
   function onDragStart(e: DragStartEvent) {
     const a = e.activatorEvent;
-    if (a && "clientX" in a) {
+    if (a instanceof PointerEvent || a instanceof MouseEvent) {
       lastPointer.current = { x: a.clientX, y: a.clientY };
     }
     attachPointerTracking();
