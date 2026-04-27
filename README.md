@@ -40,6 +40,15 @@ The build copies `index.html` to `dist/404.html` so client-side routes work on G
    If this is missing, **photo uploads** can fail and the browser may show a misleading **CORS / preflight** error on `firebasestorage.googleapis.com` even though the real issue is auth/session for that origin.
 5. Deploy **Storage rules** (see above). If uploads still fail after step 4, confirm **Anonymous** sign-in is enabled and check the browser **Network** tab status code on the failing Storage request (403 → rules or auth).
 
+### Troubleshooting: “CORS / preflight” on Storage (GitHub Pages)
+
+The app uses the Firebase Web SDK; you do **not** add CORS files to this repo. If DevTools shows a CORS or preflight error for `firebasestorage.googleapis.com`, work through this list:
+
+1. **Authorized domains** — In **Authentication** → **Settings** → **Authorized domains**, add the GitHub Pages **hostname** (e.g. `drew-834.github.io`). `localhost` is allowed by default; your production host is not.
+2. **Anonymous sign-in** — **Authentication** → **Sign-in method** → **Anonymous** = enabled (required for uploads with the current app rules).
+3. **`VITE_FIREBASE_STORAGE_BUCKET`** — In **Project settings** → **Your apps** (or **Storage**), copy the default bucket (often `project-id.firebasestorage.app`). The same value must be in local `.env` and in the repo’s **Settings → Secrets and variables → Actions** for the GitHub Pages workflow (see [`.github/workflows/pages.yml`](.github/workflows/pages.yml)). A wrong bucket can produce failed requests that the browser reports as CORS.
+4. **Re-test in the browser** — After changes, hard-refresh the site. In **Network**, inspect the Storage `POST` (and `OPTIONS` if present): **2xx** means success; **403** often means auth, rules, or App Check. **App Check** — If you enabled **enforcement** for Storage, register the web app and configure App Check (e.g. reCAPTCHA) or temporarily turn enforcement off to verify uploads.
+
 Firestore rules assume **authenticated** users (anonymous is enough). Anyone who can load your site and complete anonymous sign-in can read shared data; the trip password is **not** a cryptographic lock on Firebase—keep the repo and URL among friends.
 
 ## GitHub Pages (Actions)

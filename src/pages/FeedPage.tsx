@@ -18,6 +18,23 @@ import type { Comment, Post, PostType, Reaction } from "@/types";
 
 const EMOJIS = ["👍", "😍", "🤣", "🙏", "⚠️", "🚃", "🍜"];
 
+/** Browsers often report Storage auth/bucket issues as a generic CORS / preflight error in DevTools. */
+const PHOTO_UPLOAD_HELP =
+  "Photo upload was blocked. In Firebase Console: Authentication → Settings → Authorized domains — add your GitHub Pages host (e.g. drew-834.github.io). Sign-in: enable Anonymous. In GitHub repository Secrets, set VITE_FIREBASE_STORAGE_BUCKET to the same Storage bucket as Firebase (e.g. project-id.firebasestorage.app). See README for details.";
+
+function isCorsOrNetworkLikeErr(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  const m = `${e.name} ${e.message}`.toLowerCase();
+  return (
+    m.includes("cors") ||
+    m.includes("failed to fetch") ||
+    m.includes("networkerror") ||
+    m.includes("err_failed") ||
+    m.includes("load failed") ||
+    m.includes("preflight")
+  );
+}
+
 export function FeedPage() {
   const { userId, displayName } = useTrip();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -69,12 +86,16 @@ export function FeedPage() {
       setText("");
       setFile(null);
     } catch (e) {
+      const hadFile = file != null;
       let msg = "Could not post.";
-      if (e instanceof FirebaseError) {
-        if (e.code === "storage/unauthorized") {
-          msg =
-            "Photo upload was blocked. In Firebase Console go to Authentication → Settings → Authorized domains and add your GitHub Pages host (e.g. drew-834.github.io). See README for details.";
-        } else if (e.code === "storage/canceled") {
+      if (
+        hadFile &&
+        (isCorsOrNetworkLikeErr(e) ||
+          (e instanceof FirebaseError && e.code === "storage/unauthorized"))
+      ) {
+        msg = PHOTO_UPLOAD_HELP;
+      } else if (e instanceof FirebaseError) {
+        if (e.code === "storage/canceled") {
           msg = "Upload was canceled.";
         } else if (e.code.startsWith("storage/")) {
           msg = `Storage: ${e.message}`;
