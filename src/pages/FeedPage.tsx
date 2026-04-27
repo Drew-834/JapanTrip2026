@@ -5,13 +5,14 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
   setDoc,
 } from "firebase/firestore";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { getDb, getFirebaseStorage } from "@/lib/firebase";
 import { useTrip } from "@/context/TripContext";
 import type { Comment, Post, PostType, Reaction } from "@/types";
@@ -151,6 +152,9 @@ function PostCard({ post }: { post: Post }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [commentText, setCommentText] = useState("");
+  const [deleteErr, setDeleteErr] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const isPostAuthor = Boolean(userId && post.authorId === userId);
 
   useEffect(() => {
     const c = collection(getDb(), "posts", post.id, "comments");
@@ -207,14 +211,70 @@ function PostCard({ post }: { post: Post }) {
       });
   }
 
+  async function removePost() {
+    if (!isPostAuthor) return;
+    if (
+      !window.confirm(
+        "Delete this post? Its comments and reactions will be removed. This can’t be undone.",
+      )
+    ) {
+      return;
+    }
+    setDeleteErr(null);
+    setDeleting(true);
+    try {
+      const storage = getFirebaseStorage();
+      for (const url of post.imageUrls ?? []) {
+        if (!url) continue;
+        try {
+          await deleteObject(ref(storage, url));
+        } catch {
+          /* object missing or bad URL; continue */
+        }
+      }
+      const commentsSnap = await getDocs(
+        collection(getDb(), "posts", post.id, "comments"),
+      );
+      await Promise.all(
+        commentsSnap.docs.map((d) => deleteDoc(doc(getDb(), "posts", post.id, "comments", d.id))),
+      );
+      const reactionsSnap = await getDocs(
+        collection(getDb(), "posts", post.id, "reactions"),
+      );
+      await Promise.all(
+        reactionsSnap.docs.map((d) => deleteDoc(doc(getDb(), "posts", post.id, "reactions", d.id))),
+      );
+      await deleteDoc(doc(getDb(), "posts", post.id));
+    } catch (e) {
+      setDeleteErr(
+        e instanceof Error ? e.message : "Could not delete post. Deploy the latest Firestore rules if you still see this.",
+      );
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="card feed-post">
       <div className="row" style={{ justifyContent: "space-between" }}>
         <strong>{post.authorName}</strong>
-        <span className="muted" style={{ textTransform: "capitalize" }}>
-          {post.type}
+        <span className="row" style={{ alignItems: "center", gap: "0.5rem" }}>
+          <span className="muted" style={{ textTransform: "capitalize" }}>
+            {post.type}
+          </span>
+          {isPostAuthor && (
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={deleting}
+              onClick={() => void removePost()}
+            >
+              {deleting ? "Deleting…" : "Delete"}
+            </button>
+          )}
         </span>
       </div>
+      {deleteErr && <p className="err" style={{ margin: "0.5rem 0 0" }}>{deleteErr}</p>}
       {post.text && <p style={{ margin: "0.5rem 0 0" }}>{post.text}</p>}
       {post.imageUrls?.map((u) => (
         <img key={u} src={u} alt="" />
