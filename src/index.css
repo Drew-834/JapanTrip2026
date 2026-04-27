@@ -395,12 +395,42 @@ select {
 }
 
 .day-col {
-  flex: 0 0 140px;
-  min-width: 120px;
+  flex: 0 0 160px;
+  min-width: 130px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
   position: relative;
+}
+
+.day-col__head {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border-radius: 9px 9px 0 0;
+  overflow: hidden;
+}
+
+.day-col__head .day-col__header {
+  flex: 1;
+  min-width: 0;
+  border-radius: 0;
+}
+
+.day-col__tint {
+  flex: 0 0 auto;
+  font-size: 0.65rem;
+  padding: 0 0.35rem;
+  border: none;
+  border-left: 1px solid var(--border);
+  background: var(--surface-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.day-col__tint:hover {
+  color: var(--text);
+  background: rgb(232 93 76 / 10%);
 }
 
 .day-col--active .day-col__header {
@@ -465,9 +495,17 @@ select {
   color: #0f1419;
   border: 1px solid rgb(0 0 0 / 18%);
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: stretch;
   min-height: 8px;
+}
+
+.block-item__row {
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  align-items: stretch;
+  min-height: 0;
 }
 
 .block-item--placed {
@@ -529,6 +567,86 @@ select {
 
 .block-item.readonly {
   opacity: 0.92;
+}
+
+.block-item__resize {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 7px;
+  cursor: ns-resize;
+  background: linear-gradient(180deg, transparent, rgb(0 0 0 / 22%));
+  border-radius: 0 0 5px 5px;
+  z-index: 2;
+}
+
+.calendar-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  background: rgb(45 90 74 / 15%);
+  border: 1px solid rgb(45 90 74 / 35%);
+  border-radius: 10px;
+  color: var(--text);
+}
+
+.modal--wide {
+  max-width: 460px;
+}
+
+.friend-chip-grid {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+a.chip.friend-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 360px;
+}
+
+.friend-chip__label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.friend-preview {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 22px;
+}
+
+.friend-preview__bar {
+  width: 6px;
+  min-height: 4px;
+  border-radius: 2px;
+  transition: height 0.15s ease;
+}
+
+.friend-preview__loading {
+  display: inline-block;
+  width: 48px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
 }
 
 .others-strip {

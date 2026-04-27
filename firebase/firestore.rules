@@ -23,7 +23,9 @@ service cloud.firestore {
       allow create, update: if isOwner(ownerId)
         && request.resource.data.ownerId == ownerId
         && request.resource.data.tripStartDate is string
-        && request.resource.data.blocks is list;
+        && request.resource.data.blocks is list
+        && (!('cities' in request.resource.data) || request.resource.data.cities is list)
+        && (!('daySegments' in request.resource.data) || request.resource.data.daySegments is map);
       allow delete: if isOwner(ownerId);
     }
 

@@ -54,9 +54,28 @@ export interface ItineraryBlock {
   stationTo?: string;
 }
 
+/** Stable city entry for tints, presets, and optional day split UI. */
+export interface CityEntry {
+  id: string;
+  name: string;
+  color: string;
+}
+
+/** Per-day “where am I” for morning / evening; null = infer from events. */
+export type DayCitySplit = {
+  morningCityId: string | null;
+  eveningCityId: string | null;
+};
+
+export type DaySegmentsMap = Record<string, DayCitySplit>;
+
 export interface ItineraryDoc {
   ownerId: string;
   tripStartDate: string;
   numDays?: number;
   blocks: ItineraryBlock[];
+  /** Optional catalog; if missing, client derives from legacy block.city strings. */
+  cities?: CityEntry[];
+  /** Optional manual AM/PM city for gradient backgrounds. */
+  daySegments?: DaySegmentsMap;
 }
