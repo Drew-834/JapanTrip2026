@@ -4,10 +4,14 @@ import type { ItineraryBlockKind } from "@/types";
 
 function PaletteChip({
   kind,
+  selected,
   disabled,
+  onSelect,
 }: {
   kind: ItineraryBlockKind;
+  selected: boolean;
   disabled: boolean;
+  onSelect: () => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `palette:${kind}`,
@@ -18,11 +22,15 @@ function PaletteChip({
   return (
     <div
       ref={setNodeRef}
-      className={`palette-chip${isDragging ? " palette-chip--ghost" : ""}`}
-      title="Drag onto a day column below"
+      className={`palette-chip${selected ? " palette-chip--selected" : ""}${isDragging ? " palette-chip--ghost" : ""}`}
+      title="Click to select, then click a calendar time; or drag onto a day column"
       {...listeners}
       {...attributes}
       style={{ opacity: isDragging ? 0.45 : 1 }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
     >
       {KIND_LABELS[kind]}
     </div>
@@ -70,6 +78,8 @@ function CityChipDraggable({
 
 type Props = {
   canUsePalette: boolean;
+  selectedActivityKind: ItineraryBlockKind;
+  onSelectActivityKind: (kind: ItineraryBlockKind) => void;
   allCityNames: string[];
   selectedCity: string;
   onSelectCity: (name: string) => void;
@@ -80,6 +90,8 @@ type Props = {
 
 export function ActivityPalette({
   canUsePalette,
+  selectedActivityKind,
+  onSelectActivityKind,
   allCityNames,
   selectedCity,
   onSelectCity,
@@ -89,22 +101,28 @@ export function ActivityPalette({
 }: Props) {
   if (!canUsePalette) {
     return (
-      <p className="calendar-toolbar__hint">
-        <strong>View-only</strong> — you can’t drag activities here. Open your own calendar and use{" "}
-        <em>Enable editing (password)</em> to add blocks.
-      </p>
+      <div className="calendar-edit-callout">
+        <strong>Editing is off.</strong>
+        <span>Open your own calendar and use “Enable editing (password)” before adding or moving activities.</span>
+      </div>
     );
   }
 
   return (
     <>
       <p className="calendar-toolbar__hint">
-        <strong>Activities</strong> — drag onto a day, or <strong>double-click</strong> empty time to add.{" "}
+        <strong>Activities</strong> — click one, then click a time slot; or drag onto a day.{" "}
         <strong>Cities</strong> — drag for a quick “Explore”, or set selection for new blocks.
       </p>
       <div className="palette-row">
         {KIND_ORDER.map((k) => (
-          <PaletteChip key={k} kind={k} disabled={!canUsePalette} />
+          <PaletteChip
+            key={k}
+            kind={k}
+            selected={selectedActivityKind === k}
+            disabled={!canUsePalette}
+            onSelect={() => onSelectActivityKind(k)}
+          />
         ))}
       </div>
       <div className="city-row">

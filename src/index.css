@@ -154,19 +154,36 @@ textarea {
   border-radius: 8px;
   background: var(--bg-deep);
   color: var(--text);
+  color-scheme: dark;
 }
 
-input[type="date"] {
+input[type="date"],
+input[type="time"],
+input[type="number"] {
   color-scheme: dark;
   min-height: 2.25rem;
+  background-color: var(--bg-deep);
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator {
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
-  filter: invert(1) brightness(1.15);
-  opacity: 0.9;
+  filter: invert(1) brightness(1.35) contrast(1.05);
+  opacity: 1;
   padding: 0.25rem;
   margin-left: 0.25rem;
+}
+
+input[type="date"]:disabled::-webkit-calendar-picker-indicator,
+input[type="time"]:disabled::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(1.1);
+  opacity: 0.7;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  filter: invert(1) brightness(1.35) contrast(1.05);
+  opacity: 1;
 }
 
 input:focus,
@@ -200,6 +217,7 @@ select {
   border: 1px solid var(--border);
   background: var(--bg-deep);
   color: var(--text);
+  color-scheme: dark;
 }
 
 .btn {
@@ -340,6 +358,26 @@ select {
   max-width: 140px;
 }
 
+.calendar-edit-callout,
+.calendar-edit-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgb(212 165 116 / 45%);
+  border-radius: 10px;
+  background: rgb(212 165 116 / 12%);
+  color: var(--text);
+}
+
+.calendar-edit-callout span,
+.calendar-edit-banner span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .palette-chip,
 .city-chip {
   display: inline-flex;
@@ -378,6 +416,12 @@ select {
 .city-chip--selected {
   border-color: var(--gold);
   box-shadow: 0 0 0 2px rgb(212 165 116 / 25%);
+}
+
+.palette-chip--selected {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, rgb(232 93 76 / 26%), rgb(232 93 76 / 14%));
+  box-shadow: 0 0 0 2px rgb(232 93 76 / 24%);
 }
 
 .palette-chip--ghost,
@@ -467,11 +511,28 @@ select {
   height: 720px;
   border-radius: 0 0 9px 9px;
   transition: box-shadow 0.15s ease, background 0.15s ease;
+  cursor: crosshair;
 }
 
 .day-body--over {
   box-shadow: inset 0 0 0 2px var(--accent);
   background: rgb(232 93 76 / 6%);
+}
+
+.day-body__add-hint {
+  position: sticky;
+  top: 0.35rem;
+  z-index: 1;
+  width: calc(100% - 0.7rem);
+  margin: 0.35rem;
+  padding: 0.25rem 0.35rem;
+  border: 1px dashed rgb(232 93 76 / 40%);
+  border-radius: 7px;
+  background: rgb(13 17 23 / 65%);
+  color: var(--text-muted);
+  font-size: 0.64rem;
+  text-align: center;
+  pointer-events: none;
 }
 
 .hour-line {

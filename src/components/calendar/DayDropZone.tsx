@@ -7,6 +7,7 @@ type Props = {
   heightPx: number;
   dayBodyStyle?: CSSProperties;
   dayBodyRefs: MutableRefObject<Map<string, HTMLDivElement>>;
+  onBackgroundClick?: (dayStr: string, clientY: number) => void;
   onBackgroundDoubleClick?: (dayStr: string, clientY: number) => void;
   children: ReactNode;
 };
@@ -17,6 +18,7 @@ export function DayDropZone({
   heightPx,
   dayBodyStyle,
   dayBodyRefs,
+  onBackgroundClick,
   onBackgroundDoubleClick,
   children,
 }: Props) {
@@ -35,14 +37,22 @@ export function DayDropZone({
   return (
     <div
       ref={setRefs}
+      data-day-dropzone={dayStr}
       className={`day-body${isOver ? " day-body--over" : ""}`}
       style={{ height: heightPx, ...dayBodyStyle }}
+      onClick={(e) => {
+        if (!canEdit) return;
+        if ((e.target as HTMLElement).closest(".block-item")) return;
+        if ((e.target as HTMLElement).closest(".day-body__add-hint")) return;
+        onBackgroundClick?.(dayStr, e.clientY);
+      }}
       onDoubleClick={(e) => {
         if (!canEdit) return;
         if ((e.target as HTMLElement).closest(".block-item")) return;
         onBackgroundDoubleClick?.(dayStr, e.clientY);
       }}
     >
+      {canEdit && <div className="day-body__add-hint">Click a time to add selected activity</div>}
       {children}
     </div>
   );

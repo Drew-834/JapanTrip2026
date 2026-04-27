@@ -30,7 +30,6 @@ import { useTrip } from "@/context/TripContext";
 import {
   createBlockForKind,
   createCityExploreBlock,
-  createQuickBlock,
   DAY_BODY_PX,
   KIND_LABELS,
   PX_PER_MIN,
@@ -129,6 +128,7 @@ export function CalendarPage() {
   );
   const [daySegments, setDaySegments] = useState<DaySegmentsMap>({});
   const [customNameInputs, setCustomNameInputs] = useState<string[]>(readCustomCityNamesFromLs());
+  const [selectedActivityKind, setSelectedActivityKind] = useState<ItineraryBlockKind>("custom");
   const [selectedCity, setSelectedCity] = useState("Tokyo");
   const [addCityInput, setAddCityInput] = useState("");
   const [activeDay, setActiveDay] = useState<string | null>(null);
@@ -314,6 +314,32 @@ export function CalendarPage() {
     return gridMinutesForClientY(dayStr, lastPointer.current.y, dayBodyRefs);
   }
 
+  function dayFromPointer(clientX: number, clientY: number): string | null {
+    const el = document.elementFromPoint(clientX, clientY);
+    const droppable = el?.closest<HTMLElement>("[data-day-dropzone]");
+    if (droppable?.dataset.dayDropzone) return droppable.dataset.dayDropzone;
+
+    for (const [dayStr, body] of dayBodyRefs.current.entries()) {
+      const r = body.getBoundingClientRect();
+      if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+        return dayStr;
+      }
+    }
+    return null;
+  }
+
+  function addBlockAt(dayStr: string, clientY: number, kind = selectedActivityKind) {
+    if (!canUsePalette) return;
+    const gridMin = gridMinutesForClientY(dayStr, clientY, dayBodyRefs);
+    const col = cities.find((c) => c.name === selectedCity)?.color ?? accentColor;
+    const nb = createBlockForKind(kind, dayStr, gridMin, selectedCity, col);
+    setBlocks((prev) => [...prev, nb]);
+    pendingDraftRef.current.add(nb.id);
+    setPlacedAnimId(nb.id);
+    window.setTimeout(() => setPlacedAnimId((id) => (id === nb.id ? null : id)), 450);
+    setModal({ mode: "edit", block: nb });
+  }
+
   function attachPointerTracking() {
     const move = (e: PointerEvent) => {
       lastPointer.current = { x: e.clientX, y: e.clientY };
@@ -346,7 +372,11 @@ export function CalendarPage() {
     setOverlay(null);
     if (!canEdit) return;
     const activeId = String(e.active.id);
-    const overId = e.over?.id != null ? String(e.over.id) : "";
+    let overId = e.over?.id != null ? String(e.over.id) : "";
+    if (!overId) {
+      const dayStr = dayFromPointer(lastPointer.current.x, lastPointer.current.y);
+      if (dayStr) overId = `day:${dayStr}`;
+    }
 
     if (activeId.startsWith("palette:") && overId.startsWith("day:")) {
       const kind = activeId.slice(8) as ItineraryBlockKind;
@@ -378,18 +408,6 @@ export function CalendarPage() {
       const [blockId] = activeId.split("|");
       if (blockId) applyDrag(blockId, e.delta.y);
     }
-  }
-
-  function onDayDoubleClick(dayStr: string, clientY: number) {
-    if (!canUsePalette) return;
-    const gridMin = gridMinutesForClientY(dayStr, clientY, dayBodyRefs);
-    const col = cities.find((c) => c.name === selectedCity)?.color ?? accentColor;
-    const nb = createQuickBlock(dayStr, gridMin, "custom", selectedCity, col);
-    setBlocks((prev) => [...prev, nb]);
-    pendingDraftRef.current.add(nb.id);
-    setPlacedAnimId(nb.id);
-    window.setTimeout(() => setPlacedAnimId((id) => (id === nb.id ? null : id)), 450);
-    setModal({ mode: "edit", block: nb });
   }
 
   function addCustomCity() {
@@ -517,6 +535,16 @@ export function CalendarPage() {
         </div>
       )}
 
+      {isOwn && !editMode && (
+        <div className="calendar-edit-banner card">
+          <strong>Editing is currently off.</strong>
+          <span>Turn it on to click time slots, drag activities, resize blocks, or update day tints.</span>
+          <button type="button" className="btn secondary" onClick={() => setEditOpen(true)}>
+            Enable editing
+          </button>
+        </div>
+      )}
+
       <div className="calendar-toolbar card">
         <label className="muted row">
           Trip start
@@ -540,6 +568,8 @@ export function CalendarPage() {
         </label>
         <ActivityPalette
           canUsePalette={canUsePalette}
+          selectedActivityKind={selectedActivityKind}
+          onSelectActivityKind={setSelectedActivityKind}
           allCityNames={allCityNames}
           selectedCity={selectedCity}
           onSelectCity={setSelectedCity}
@@ -583,7 +613,7 @@ export function CalendarPage() {
                   heightPx={DAY_BODY_PX}
                   dayBodyStyle={dayBg}
                   dayBodyRefs={dayBodyRefs}
-                  onBackgroundDoubleClick={(ds, y) => onDayDoubleClick(ds, y)}
+                  onBackgroundClick={(ds, y) => addBlockAt(ds, y)}
                 >
                   {Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, i) => {
                     const hour = DAY_START_HOUR + i;
